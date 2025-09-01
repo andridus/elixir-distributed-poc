@@ -1,0 +1,21 @@
+version: "3.8"
+
+secrets:
+  cookie:
+    file: ./secrets/cookie
+
+networks:
+  swarm_bank_net:
+    external: true
+
+services:
+  banking_core:
+    image: banking_core:latest
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    secrets:
+      - cookie
+    networks:
+      - swarm_bank_net
