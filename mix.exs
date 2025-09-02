@@ -10,8 +10,10 @@ defmodule Bank.MixProject do
       deps: deps(),
       releases: [
         bank: [
+          include_erts: true,
           include_executables_for: [:unix],
-          applications: [runtime_tools: :permanent]
+          applications: [runtime_tools: :permanent],
+          vm_args: "rel/vm.args"
         ]
       ]
     ]

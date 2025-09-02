@@ -1,27 +1,50 @@
-# ---------- BUILD ----------
-  FROM erlang:28-alpine AS build
-  WORKDIR /app
-  RUN apk add --no-cache build-base git
+# ---------- BUILD STAGE ----------
+FROM elixir:1.18-alpine AS builder
 
-  COPY _build .
-  COPY _build/rebar.config rebar.config
-  COPY config config
-  RUN rebar3 as prod release
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
+    git
 
-# ---------- RUNTIME ----------
-  FROM alpine:3.20 AS runtime
-  WORKDIR /app
-  # libs mínimas para o ERTS/OTP no Alpine
-  RUN apk add --no-cache \
-      libstdc++ \
-      libgcc \
-      ncurses-libs \
-      openssl \
-      zlib \
-      bash
-  COPY --from=build /app/_build/prod/rel/banking_core ./
-  COPY distributed/entrypoint.sh /app/entrypoint.sh
-  COPY config/vm.args /app/releases/0.1.0/vm.args
-  RUN chmod +x /app/entrypoint.sh
-  ENTRYPOINT ["/app/entrypoint.sh"]
-  # ENTRYPOINT ["bin/banking_core", "foreground"]
+# Set working directory
+WORKDIR /app
+
+# Install hex and rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
+COPY . .
+RUN rm -rf _build deps
+
+# Install dependencies
+RUN mix deps.get --only prod
+
+# Compile and build release with ERTS included
+RUN MIX_ENV=prod mix compile && \
+    MIX_ENV=prod mix release bank --overwrite
+
+# ---------- RUNTIME STAGE ----------
+FROM alpine:3.22.1 AS runtime
+
+# Install only runtime dependencies (no Elixir/Erlang)
+RUN apk add --no-cache \
+    libstdc++ \
+    libgcc \
+    openssl \
+    zlib \
+    ncurses-libs \
+    ncurses-terminfo-base \
+    bash ca-certificates
+
+# Create app user
+RUN adduser -D -s /bin/sh app
+
+# Set working directory
+WORKDIR /app
+
+# Copy the entire release from builder stage
+COPY --from=builder --chown=app:app /app/_build/prod/rel/bank ./
+
+USER app
+# Start the application
+CMD ["./bin/bank", "start"]

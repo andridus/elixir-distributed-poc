@@ -1,0 +1,9 @@
+<%!-- -name ${RELEASE_NODE} --%>
+-setcookie ${RELEASE_COOKIE}
+-proto_dist inet_tcp
+<%!-- -kernel inet_dist_use_interface {${MY_IP_TUPLE}} --%>
+<%!-- -kernel inet_dist_listen_min 9100
+-kernel inet_dist_listen_max 9150 --%>
+<%!-- -kernel inet_dist_use_interface {${MY_IP_TUPLE}} --%>
+-kernel inet_dist_listen_min 9100
+-kernel inet_dist_listen_max 9150
